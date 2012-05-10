@@ -9,6 +9,7 @@
 \usepackage{listings}
 \usepackage{textpos}
 \usepackage{tikz}
+\usepackage{minted}
 
 \setbeamertemplate{footline}[frame]
 \setbeamertemplate{items}[default]
@@ -19,8 +20,12 @@
 \setbeamertemplate{footline}[frame number]
 \lstset{columns=fixed}
 \setbeamerfont*{block body}{series=\tt}
+\definecolor{lightgray}{rgb}{0.95,0.95,0.95}
+\definecolor{midgray}{rgb}{0.5,0.5,0.5}
 
 \newcommand{\light}[1]{\textcolor{gray}{\footnotesize{#1}}}
+\newcommand{\code}[4]{\inputminted[linenos, frame=none, firstline=#2, lastline=#3,
+  framesep=10pt, bgcolor=lightgray]{#4}{#1}}
 
 \title[Об ошибках]{Обработка ошибок — общие соображения и грязные подробности}
 \author{Дмитрий Грошев}
@@ -72,13 +77,14 @@
     \item о балансе
     \item простые и сложные ошибки
     \item третий путь
-    \item всё ещё хуже — ошибки перегрузки
+    \item всё ещё хуже — ошибки перегрузки, ошибки параллелизма
     \end{itemize}
   \item грязные подробности
     \begin{itemize}
     \item исторически сложившиеся методы обработки ошибок
     \item снова о статике и немного о монадах
     \item велосипеды
+    \item пример кода
     \end{itemize}
   \end{itemize}
 \end{frame}
@@ -106,14 +112,9 @@
   Необходим баланс между этими крайностями
 \end{frame}
 
-\begin{frame}{«Простые» ошибки}
+\begin{frame}[fragile]{«Простые» ошибки}
   Ошибки бывают очевидными:
-  \begin{block}{Python}
-    \centering
-    \small
-    \lstset{language=python}
-    \lstinputlisting[firstline=1,lastline=3]{code.py}
-  \end{block}
+  \code{code.py}{1}{3}{python}
   \begin{itemize}
   \item JS: «это не ошибка»
   \item Python: «добавь try/except»
@@ -128,26 +129,16 @@
 \end{frame}
 
 \begin{frame}{«Добавь try/except»}
-  \begin{block}{Python}
-    \centering
-    \small
-    \lstset{language=python}
-    \lstinputlisting[firstline=5,lastline=10]{code.py}
-  \end{block}
+  \code{code.py}{5}{10}{python}
   \begin{itemize}
-  \item повседневная реальность большого количества разработчиков
+  \item повседневная реальность большинства разработчиков
   \item требует юнит-тестов
   \item 100\% покрытие ничего не гарантирует
   \end{itemize}
 \end{frame}
 
 \begin{frame}{«Где типы?»}
-  \begin{block}{Java}
-    \centering
-    \small
-    \lstset{language=java}
-    \lstinputlisting[firstline=1,lastline=7]{code.java}
-  \end{block}
+  \code{code.java}{1}{7}{java}
   \begin{itemize}
   \item этот код даже не скомпилируется
   \item этого кода слишком много
@@ -156,12 +147,7 @@
 \end{frame}
 
 \begin{frame}{«Где типы?»}
-  \begin{block}{Haskell}
-    \centering
-    \small
-    \lstset{language=haskell}
-    \lstinputlisting[firstline=1,lastline=3]{code.hs}
-  \end{block}
+  \code{code.hs}{1}{3}{haskell}
   \begin{itemize}
   \item этот код тоже не скомпилируется
   \item типы a и b однозначно вытекают из соответствующих литералов — зачем их указывать?
@@ -175,13 +161,13 @@
   Или: \emph{любая система типов может мешать программисту}
 \end{frame}
 
+\begin{frame}{Проблема статической типизации}
+  Пример:
+  \code{code.java}{17}{23}{java}
+\end{frame}
+
 \begin{frame}{Оптимистичная типизация}
-  \begin{block}{Erlang}
-    \centering
-    \small
-    \lstset{language=erlang}
-    \lstinputlisting[firstline=1,lastline=4]{code.erl}
-  \end{block}
+  \code{code.erl}{1}{4}{erlang}
   \begin{itemize}
   \item этот код скомпилируется
   \item тайпчекер (отдельная программа в случае Erlang'а) укажет на ошибку
@@ -189,12 +175,7 @@
 \end{frame}
 
 \begin{frame}{Оптимистичная типизация}
-  \begin{block}{Erlang}
-    \centering
-    \small
-    \lstset{language=erlang}
-    \lstinputlisting[firstline=6,lastline=11]{code.erl}
-  \end{block}
+  \code{code.erl}{6}{11}{erlang}
   \begin{itemize}
   \item тайпчекер не найдёт ошибки в этом коде
   \item «оптимистичная» = если тайпчекер не может вывести тип, считается, что всё хорошо
@@ -218,12 +199,7 @@
 \end{frame}
 
 \begin{frame}{«Сложные» ошибки}
-  \begin{block}{Java}
-    \centering
-    \small
-    \lstset{language=java}
-    \lstinputlisting[firstline=9,lastline=15]{code.java}
-  \end{block}
+  \code{code.java}{9}{15}{java}
   \begin{itemize}
   \item этот код скомпилируется
   \item где ошибка?
@@ -241,12 +217,7 @@
 \end{frame}
 
 \begin{frame}{Property-based тестирование}
-  \begin{block}{Erlang}
-    \centering
-    \small
-    \lstset{language=erlang}
-    \lstinputlisting[firstline=13,lastline=15]{code.erl}
-  \end{block}
+  \code{code.erl}{13}{15}{erlang}
   \begin{itemize}
   \item тестирующая система сама может генерировать тесты
   \item предполагается, что в определении json нет ошибки
@@ -255,12 +226,7 @@
 \end{frame}
 
 \begin{frame}{Зависимые типы}
-  \begin{block}{ATS}
-    \centering
-    \small
-    \lstset{language=c}
-    \lstinputlisting[firstline=1,lastline=3]{code.ats}
-  \end{block}
+  \code{code.ats}{1}{3}{c}
   \begin{itemize}
   \item конкретные значения и их соотношения являются параметрами типов
   \item сложные компиляторы, очень сложно писать
@@ -357,26 +323,16 @@
 \end{frame}
 
 \begin{frame}{Ремарка}
-  \begin{center}    \light{Каждый раз, когда кто-то говорит о поддержке многоядерных сред Erlang'ом как о главном его плюсе, Бог убивает котёнка}
+  \begin{center}
+    \light{Каждый раз, когда кто-то говорит о поддержке многоядерных сред Erlang'ом как о главном его плюсе, Бог убивает котёнка}
   \end{center}
 \end{frame}
 
 \begin{frame}{Не только неожиданные ошибки}
   Подход let it crash можно расширить на известные программисту ошибки:
-  \begin{block}{Erlang}
-    \centering
-    \small
-    \lstset{language=erlang}
-    \lstinputlisting[firstline=17,lastline=18]{code.erl}
-  \end{block}
+  \code{code.erl}{17}{18}{erlang}
   Иногда можно описывать только happy path:
-  \begin{block}{Erlang}
-    \centering
-    \small
-    \lstset{language=erlang}
-    \lstinputlisting[firstline=20,lastline=22]{code.erl}
-  \end{block}
-
+  \code{code.erl}{20}{22}{erlang}
 \end{frame}
 
 \begin{frame}{Chaos monkey}
@@ -412,6 +368,14 @@
   Компилятор не помогает, нагрузочное тестирование может не содержать все «опасные» паттерны активности
 \end{frame}
 
+\begin{frame}{Hell of parallel execution}
+  \begin{itemize}
+  \item паралеллизм при исполнении программ делает всё ещё хуже
+  \item правильные программы при параллельном исполнении становятся неправильными
+  \item подробнее в докладе Евгения Кирпичёва на ADD-2010
+  \end{itemize}
+\end{frame}
+
 \begin{frame}{}
   \begin{center}
     \huge Часть 2: грязные подробности
@@ -419,12 +383,7 @@
 \end{frame}
 
 \begin{frame}{Обработка кодов ошибок}
-  \begin{block}{C}
-    \centering
-    \small
-    \lstset{language=c}
-    \lstinputlisting[firstline=1,lastline=10]{code.c}
-  \end{block}
+  \code{code.c}{1}{10}{c}
   \begin{itemize}
   \item мы все это видели
   \item компилятор не контролирует обработку возвращаемых значений
@@ -433,7 +392,7 @@
 \end{frame}
 
 \begin{frame}{Null}
-  \begin{block}{Java}
+  \begin{block}{}
     Exception in thread "main" java.lang.NullPointerException
   \end{block}
   \begin{itemize}
@@ -447,19 +406,9 @@
 \begin{frame}{Ремарка: тотальность}
   Тотальность — свойство функции всегда возвращать что-то осмысленное.\\
   Плохо:
-  \begin{block}{Python}
-    \centering
-    \small
-    \lstset{language=python}
-    \lstinputlisting[firstline=21,lastline=22]{code.py}
-  \end{block}
+  \code{code.py}{21}{22}{python}
   Хорошо:
-  \begin{block}{Python}
-    \centering
-    \small
-    \lstset{language=python}
-    \lstinputlisting[firstline=24,lastline=26]{code.py}
-  \end{block}
+  \code{code.py}{24}{26}{python}
   Тотальность помогает изолировать ошибки и отлаживать код
 \end{frame}
 
@@ -471,18 +420,10 @@
 \end{frame}
 
 \begin{frame}{Error flow}
-  \begin{block}{req\_handlers.py}
-    \centering
-    \small
-    \lstset{language=python}
-    \lstinputlisting[firstline=28,lastline=32]{code.py}
-  \end{block}
-  \begin{block}{data\_handlers.py}
-    \centering
-    \small
-    \lstset{language=python}
-    \lstinputlisting[firstline=34,lastline=38]{code.py}
-  \end{block}
+  req\_handlers.py:
+  \code{code.py}{28}{32}{python}\vspace{5pt}\\
+  data\_handlers.py:
+  \code{code.py}{34}{38}{python}
 \end{frame}
 
 \begin{frame}{Error flow}
@@ -494,18 +435,10 @@
 \end{frame}
 
 \begin{frame}{Метки успешности}
-  \begin{block}{req\_handlers.py}
-    \centering
-    \small
-    \lstset{language=python}
-    \lstinputlisting[firstline=40,lastline=42]{code.py}
-  \end{block}
-  \begin{block}{data\_handlers.py}
-    \centering
-    \small
-    \lstset{language=python}
-    \lstinputlisting[firstline=44,lastline=46]{code.py}
-  \end{block}
+  req\_handlers.py:
+  \code{code.py}{40}{42}{python}\vspace{5pt}\\
+  data\_handlers.py:
+  \code{code.py}{44}{46}{python}
 \end{frame}
 
 \begin{frame}{Метки успешности}
@@ -517,12 +450,7 @@
 \end{frame}
 
 \begin{frame}{Проблема}
-  \begin{block}{Python}
-    \centering
-    \small
-    \lstset{language=python}
-    \lstinputlisting[firstline=48,lastline=55]{code.py}
-  \end{block}
+  \code{code.py}{48}{55}{python}
 \end{frame}
 
 \begin{frame}{Двойственная природа Exception'а}
@@ -535,12 +463,7 @@
 \end{frame}
 
 \begin{frame}{Pattern matching}
-  \begin{block}{Python}
-    \centering
-    \small
-    \lstset{language=python}
-    \lstinputlisting[firstline=57,lastline=64]{code.py}
-  \end{block}
+  \code{code.py}{57}{64}{python}
   \begin{block}{}
     TypeError: 'bool' object is not iterable
   \end{block}
@@ -548,12 +471,7 @@
 \end{frame}
 
 \begin{frame}{Pattern matching}
-  \begin{block}{Erlang}
-    \centering
-    \small
-    \lstset{language=erlang}
-    \lstinputlisting[firstline=24,lastline=27]{code.erl}
-  \end{block}
+  \code{code.erl}{24}{27}{erlang}
   \begin{block}{}
     ** exception error: no match of right hand side value \{error,foobar\}
   \end{block}
@@ -561,27 +479,17 @@
 \end{frame}
 
 \begin{frame}{Смысл точки с запятой}
-  \begin{block}{Python}
-    \centering
-    \small
-    \lstset{language=python}
-    \lstinputlisting[firstline=66,lastline=67]{code.py}
-  \end{block}
+  \code{code.py}{66}{67}{python}
   \begin{itemize}
-  \item ``;'' можно воспринимать как «безусловно перейти к следующей строке»
+  \item ";" можно воспринимать как «безусловно перейти к следующему выражению»
   \item можно заменить данный переход на условный
   \end{itemize}
 \end{frame}
 
 \begin{frame}{Функция bind}
-  \begin{block}{Python}
-    \centering
-    \small
-    \lstset{language=python}
-    \lstinputlisting[firstline=69,lastline=71]{code.py}
-  \end{block}
+  \code{code.py}{69}{71}{python}
   \begin{itemize}
-  \item функция comma принимает решение, вызвать ли свой второй аргумент
+  \item функция bind принимает решение, вызвать ли свой второй аргумент
   \item в любой момент вся цепочка выражений может вернуть значение без вычисления остальных выражений
   \item если \emph{foo} и \emph{bar} возвращают метки успешности, конструкция аналогична использованию Exception
   \item тайпчекер, если он есть, может контролировать возврат \emph{foo} и \emph{bar}
@@ -589,21 +497,11 @@
 \end{frame}
 
 \begin{frame}{Функция bind}
-  \begin{block}{Python}
-    \centering
-    \small
-    \lstset{language=python}
-    \lstinputlisting[firstline=73,lastline=80]{code.py}
-  \end{block}
+  \code{code.py}{73}{80}{python}
 \end{frame}
 
 \begin{frame}{Функция return}
-  \begin{block}{Python}
-    \centering
-    \small
-    \lstset{language=python}
-    \lstinputlisting[firstline=82,lastline=83]{code.py}
-  \end{block}
+  \code{code.py}{82}{83}{python}
   \begin{itemize}
   \item многие функции ничего не знают про наши метки успешности выполнения
   \item \emph{return} позволяет использовать их
@@ -611,12 +509,7 @@
 \end{frame}
 
 \begin{frame}{Функция return}
-  \begin{block}{Python}
-    \centering
-    \small
-    \lstset{language=python}
-    \lstinputlisting[firstline=85,lastline=90]{code.py}
-  \end{block}
+  \code{code.py}{85}{90}{python}
 \end{frame}
 
 \begin{frame}{Монада Maybe}
@@ -653,12 +546,7 @@
 
 \begin{frame}{Эмуляция монад}
   Промежуточный вариант:
-  \begin{block}{Python}
-    \centering
-    \small
-    \lstset{language=python}
-    \lstinputlisting[firstline=95,lastline=110]{code.py}
-  \end{block}
+  \code{code.py}{95}{110}{python}
 \end{frame}
 
 \begin{frame}{Эмуляция монад}
@@ -678,9 +566,38 @@
 \end{frame}
 
 \begin{frame}{Почему это важно}
-  \begin{center}
-    \light{Пример кода}
-  \end{center}
+  \inputminted[linenos, frame=none, firstline=29, fontsize=\tiny, lastline=48,
+  framesep=10pt, bgcolor=lightgray]{erlang}{code.erl}
+\end{frame}
+
+\begin{frame}{Почему это важно}
+  \inputminted[linenos, frame=none, fontsize=\footnotesize,
+  firstline=50, lastline=65, framesep=10pt, firstnumber=4,
+  bgcolor=lightgray]{erlang}{code.erl}
+\end{frame}
+
+\begin{frame}{Почему это важно}
+  \inputminted[linenos, frame=none, fontsize=\small,
+  firstline=67, lastline=72, framesep=10pt,
+  bgcolor=lightgray]{erlang}{code.erl}
+\end{frame}
+
+\begin{frame}{Почему это важно}
+  \inputminted[linenos, frame=none, fontsize=\small,
+  firstline=74, lastline=76, framesep=10pt, firstnumber=5,
+  bgcolor=lightgray]{erlang}{code.erl}
+\end{frame}
+
+\begin{frame}{Почему это важно}
+  \inputminted[linenos, frame=none, fontsize=\small,
+  firstline=78, lastline=81, framesep=10pt, firstnumber=8,
+  bgcolor=lightgray]{erlang}{code.erl}
+\end{frame}
+
+\begin{frame}{Почему это важно}
+  \inputminted[linenos, frame=none, fontsize=\small,
+  firstline=83, lastline=85, framesep=10pt, firstnumber=12,
+  bgcolor=lightgray]{erlang}{code.erl}
 \end{frame}
 
 \begin{frame}{Ну и наконец…}
