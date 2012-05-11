@@ -257,21 +257,21 @@
 \begin{frame}{Хьюстон, у нас проблема}
   Ошибка произошла. Что делать?
   \begin{itemize}
-  \item отбросить испорченные данные вместо сохранения
+  \item отбросить «испорченное» состояние вместо сохранения
   \item перезапуститься, начав с чистого листа
   \item let it crash (it will crash anyway)
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Цена перезапуска}
-  Необходимо минимизировать цену перезапуска
+\begin{frame}{О падениях}
+  Необходимо минимизировать цену падения и облегчить падение (вместо продолжения работы в неправильном режиме)
   \begin{itemize}
   \item изоляция потоков исполнения
-  \item изоляция данных
-  \item асинхронный message-passing с копированием (akka doing it wrong)
+  \item изоляция данных и состояния, явное выделение состояния
+  \item асинхронный message-passing с копированием (Akka не Erlang)
   \item никаких глобальных event loop'ов
-  \item никому нельзя доверять
   \end{itemize}
+  Никому нельзя доверять!
 \end{frame}
 
 \begin{frame}{Логика перезапуска}
@@ -446,7 +446,7 @@
 \begin{frame}{Error flow}
   \begin{itemize}
   \item Exception'ы делают error flow нелокальным и независимым от control flow
-  \item checked exceptions в Java помогает решить эту проблему
+  \item checked exceptions в Java помогает частично решить эту проблему
   \item альтернатива — метки успешности/неуспешности выполнения
   \end{itemize}
 \end{frame}
@@ -459,8 +459,8 @@
 \end{frame}
 
 \begin{frame}{Метки успешности}
+  Непривычно, но:
   \begin{itemize}
-  \item непривычно
   \item error flow полностью соответствует control flow
   \item тайпчекер может проверять обработку ошибок без поддержки checked exceptions
   \end{itemize}
@@ -510,7 +510,7 @@
 \end{frame}
 
 \begin{frame}{Функция bind}
-  \code{code.py}{73}{83}{python}
+  \code{code.py}{120}{133}{python}
 \end{frame}
 
 \begin{frame}{Функция return}
@@ -525,9 +525,9 @@
   \code{code.py}{88}{93}{python}
 \end{frame}
 
-\begin{frame}{Монада Maybe}
+\begin{frame}{Монада Either}
   \begin{itemize}
-  \item сочетание соглашения о метках успешности выполнения, \emph{bind} и \emph{return} образует монаду (в данном случае Maybe)
+  \item сочетание соглашения о метках успешности выполнения, \emph{bind} и \emph{return} образует монаду (в данном случае Either)
   \item в этой модели можно оперировать с любыми функциями
   \item \emph{bind} обеспечивает прерывание потока выполнения
   \item подобную конструкцию можно создать в любом языке с первоклассными функциями

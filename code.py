@@ -116,3 +116,18 @@ def test_bad(maybe_db_data):
 
 def test_good(maybe_db_data):
     connect = connect_good(maybe_db_data)
+
+def auth():
+    if authed():
+        return (True, "usr42")
+    else:
+        return (False, "not_authed")
+
+def send(usr, msg):
+    return (True, do_send(usr, msg))
+
+def bind((is_ok, value), f):
+    if is_ok:
+        return f(value)
+    else:
+        return (False, value)
