@@ -57,5 +57,6 @@ TaskVars = [?Z_CATCH(fetch_var(Var, VarType, QSVals),
             || {Var, VarType} <- VarSpecs]
 
 A = {1, 2, 3},
-{B1, B2, B3} = A
-{C1, C2} = A %% ERROR
+{B1, B2, B3} = A,
+{C1, C2} = A,   %% ERROR
+{D1, D2, 0} = A %% ERROR
