@@ -38,21 +38,21 @@ def handle(data):
         store(data)
 
 def handle_req(req):
-    (is_ok, result) = data_handlers.handle(req.data)
+    (is_ok, res) = data_handlers.handle(req.data)
     if not is_ok: do_something()
 
 def handle(data):
-    if not test(data): return (False, 0)
+    if not test(data): return (False, "failed")
     return (True, store(data))
 
 def handle(data):
-    (is_ok, foo_result) = foo(data)
+    (is_ok, value) = parse(data)
     if not is_ok:
-        return (False, data)
-    (is_ok, bar_result) = bar(foo_result)
+        return (False, value)
+    (is_ok, value) = process(value)
     if not is_ok:
-        return (False, data)
-    return baz(bar_result)
+        return (False, value)
+    return finalize(value)
 
 def handle(data):
     (is_ok, foo_result) = foo(data)
@@ -63,36 +63,36 @@ def handle(data):
         return False
     return baz(bar_result)
 
-a = foo();
-b = bar(a, "baz");
+usr_id = auth();
+status = send(usr_id, "logged");
 
-bind(foo(),
-     lambda a: bind(bar(a, "baz"),
-                    lambda b: b))
+bind(auth(),
+     lambda user_id: bind(send(usr_id, "logged"),
+                          lambda status: status))
 
-def foo():
-    return (True, "foo")
+def auth():
+    return (True, "usr42")
 
-def bar(str1, str2):
-    return (True, str1 + str2)
+def send(usr, msg):
+    return (True, do_send(usr, msg))
 
 def bind((is_ok, value), f):
     if is_ok:
         return f(value)
     else:
-        return False
+        return (False, value)
 
 def ret(value):
     return (True, value)
 
-def ignorant_foo():
-    return "foo"
+def ignorant_auth():
+    return "usr42"
 
-bind(ret(ignorant_foo()),
-     lambda a: bind(bar(a, "baz"),
-                    lambda b: b))
+bind(ret(ignorant_auth()),
+     lambda user_id: bind(send(usr_id, "logged"),
+                          lambda status: status))
 
-def my_call(f, err, args*):
+def my_call(f, err, *args):
     try:
         return f(*args)
     except Exception as e:
@@ -104,7 +104,15 @@ def my_return(x):
 def test():
     try:
         conn = my_call(connect_db, "can't connect")
-        data = my_call(make_request, "req error", conn)
+        data = my_call(make_req, "req error", conn)
         my_return(data)
     except MyException as e:
         return e.result if e.is_ok else e.error
+
+def test_bad(maybe_db_data):
+    connect = connect_bad(maybe_db_data)
+    if not connect:
+        raise Exception("ALARM")
+
+def test_good(maybe_db_data):
+    connect = connect_good(maybe_db_data)

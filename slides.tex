@@ -20,7 +20,7 @@
 \setbeamertemplate{footline}[frame number]
 \lstset{columns=fixed}
 \setbeamerfont*{block body}{series=\tt}
-\definecolor{lightgray}{rgb}{0.95,0.95,0.95}
+\definecolor{lightgray}{rgb}{0.9,0.9,0.9}
 \definecolor{midgray}{rgb}{0.5,0.5,0.5}
 
 \newcommand{\light}[1]{\textcolor{gray}{\footnotesize{#1}}}
@@ -29,7 +29,7 @@
 
 \title[Об ошибках]{Обработка ошибок — общие соображения и грязные подробности}
 \author{Дмитрий Грошев}
-\date{\includegraphics[height=3cm]{add-large}\\11.05.2012}
+\date{\includegraphics[height=3cm]{add-large}\\12.05.2012}
 \institute{}
 
 \addtobeamertemplate{frametitle}{}{%
@@ -82,7 +82,6 @@
   \item грязные подробности
     \begin{itemize}
     \item исторически сложившиеся методы обработки ошибок
-    \item снова о статике и немного о монадах
     \item велосипеды
     \item пример кода
     \end{itemize}
@@ -96,7 +95,7 @@
 \end{frame}
 
 \begin{frame}{Классификация}
-  Наиболее очевидная классификация:
+  Наиболее очевидная классификация по времени появления:
   \begin{itemize}
   \item времени компиляции
   \item времени выполнения
@@ -107,7 +106,7 @@
   Когда ловить ошибки?
   \begin{itemize}
   \item во время компиляции — код либо сложнее, либо многословнее
-  \item во время выполнения — падает надёжность
+  \item во время выполнения — падает надёжность, ведь запуск кода не гарантирует его работоспособности
   \end{itemize}
   Необходим баланс между этими крайностями
 \end{frame}
@@ -217,6 +216,7 @@
 \end{frame}
 
 \begin{frame}{Property-based тестирование}
+  Тесты для JSON-библиотеки:
   \code{code.erl}{13}{15}{erlang}
   \begin{itemize}
   \item тестирующая система сама может генерировать тесты
@@ -228,7 +228,7 @@
 \begin{frame}{Зависимые типы}
   \code{code.ats}{1}{3}{c}
   \begin{itemize}
-  \item конкретные значения и их соотношения являются параметрами типов
+  \item конкретные значения и их соотношения являются параметрами типов (\emph{1: int(1)})
   \item сложные компиляторы, очень сложно писать
   \end{itemize}
 \end{frame}
@@ -236,33 +236,29 @@
 \begin{frame}{«Сложные» ошибки: резюме}
   \begin{itemize}
   \item проблема не имеет общепринятого решения
-  \item ошибки такого рода во время выполнения практически неизбежны
+  \item ошибки значений во время выполнения практически неизбежны
   \item что делать?
   \end{itemize}
+\end{frame}
+
+\begin{frame}{Третий путь}
+  Оставить надежду найти и обработать все ошибки
 \end{frame}
 
 \begin{frame}{Good enough}
   Нужно:
   \begin{itemize}
   \item признать неизбежность ошибок
-  \item проектировать весь стек технологий с учётом неизбежности \emph{неожиданных} ошибок
-  \item разделять обработку ошибок для отображения и для сохранения работоспособности системы в целом
+  \item проектировать весь стек технологий с учётом неизбежности \emph{неожиданных} ошибок (функция в используемой библиотеке изменила интерфейс, сложение вернуло exception)
+  \item разделять обработку ошибок для отображения и для сохранения работоспособности системы в целом (CGI и HTTP 500 вместо падения сервера)
   \end{itemize}
-\end{frame}
-
-\begin{frame}{Ремарка о работоспособности}
-  \begin{itemize}
-  \item сначала работоспособность
-  \item потом отображение
-  \end{itemize}
-  Хороший пример — CGI и HTTP 500 вместо падения сервера
 \end{frame}
 
 \begin{frame}{Хьюстон, у нас проблема}
   Ошибка произошла. Что делать?
   \begin{itemize}
   \item отбросить испорченные данные вместо сохранения
-  \item перезапуститься
+  \item перезапуститься, начав с чистого листа
   \item let it crash (it will crash anyway)
   \end{itemize}
 \end{frame}
@@ -272,7 +268,7 @@
   \begin{itemize}
   \item изоляция потоков исполнения
   \item изоляция данных
-  \item асинхронный message-passing
+  \item асинхронный message-passing с копированием (akka doing it wrong)
   \item никаких глобальных event loop'ов
   \item никому нельзя доверять
   \end{itemize}
@@ -282,12 +278,13 @@
   Необходимо контролировать логику перезапуска
   \begin{itemize}
   \item ошибка может произойти для группы процессов
-  \item если ошибка происходит слишком часто, нет смысла перезапускать процессы
+  \item если ошибка происходит слишком часто, нет смысла перезапускать процесс ()
   \item то, что перезапускает (supervisor) само может содержать ошибку
   \end{itemize}
+  Достаточно общим решением является supervision tree
 \end{frame}
 
-\begin{frame}{Supervisor tree}
+\begin{frame}{Supervision tree}
   \begin{center}
     \begin{tikzpicture}[
       worker/.style={rectangle,draw,fill=blue!20},
@@ -376,9 +373,31 @@
   \end{itemize}
 \end{frame}
 
+\begin{frame}{Что дальше}
+  Мы поговорили о:
+  \begin{itemize}
+  \item ошибках времени компиляции и времени выполнения
+  \item ошибках типов и термов
+  \item property-based тестировании
+  \item зависимых типах
+  \item принципе let it crash
+  \item цене перезапуска
+  \item супервизорах
+  \item нерешённых проблемах
+  \end{itemize}
+  Ближе к коду!
+\end{frame}
+
 \begin{frame}{}
   \begin{center}
     \huge Часть 2: грязные подробности
+  \end{center}
+\end{frame}
+
+\begin{frame}{}
+  \begin{center}
+    \large ПРЕДУПРЕЖДЕНИЕ\\
+    далее следует значительное количество неидиоматичного Python-кода
   \end{center}
 \end{frame}
 
@@ -396,19 +415,20 @@
     Exception in thread "main" java.lang.NullPointerException
   \end{block}
   \begin{itemize}
-  \item null \emph{гораздо} хуже кодов возврата
+  \item null \emph{гораздо} хуже кодов возврата — это нетипизированный терм в типизированной среде (в C все привыкли к содомии кодов возврата)
   \item компилятор контролирует обработку возвращаемых значений, но не null
   \item Тони Хоар (создатель Algol'а) считает введение null своей худшей ошибкой
-  \item null не является типом, и потому относится к «сложным» ошибкам значений термов
   \end{itemize}
 \end{frame}
 
 \begin{frame}{Ремарка: тотальность}
-  Тотальность — свойство функции всегда возвращать что-то осмысленное.\\
+  Тотальность — свойство функции всегда делать что-то осмысленное, несмотря на вход.\\
   Плохо:
   \code{code.py}{21}{22}{python}
   Хорошо:
   \code{code.py}{24}{26}{python}
+  Пример:
+  \code{code.py}{112}{118}{python}
   Тотальность помогает изолировать ошибки и отлаживать код
 \end{frame}
 
@@ -417,9 +437,6 @@
   \item control flow: обычно виден, локален и очевиден
   \item error flow: может быть абсолютно неочевидным
   \end{itemize}
-\end{frame}
-
-\begin{frame}{Error flow}
   req\_handlers.py:
   \code{code.py}{28}{32}{python}\vspace{5pt}\\
   data\_handlers.py:
@@ -462,18 +479,14 @@
   Можно ли решить вторую проблему с метками успешности?
 \end{frame}
 
-\begin{frame}{Pattern matching}
-  \code{code.py}{57}{64}{python}
-  \begin{block}{}
-    TypeError: 'bool' object is not iterable
-  \end{block}
-  Поток выполнения прерывается, но ошибка неинформативна
+\begin{frame}{Ремарка о pattern matching}
+  \code{code.erl}{59}{61}{erlang}
 \end{frame}
 
 \begin{frame}{Pattern matching}
   \code{code.erl}{24}{27}{erlang}
   \begin{block}{}
-    ** exception error: no match of right hand side value \{error,foobar\}
+    ** exception error: no match of right hand side value \{error,some\_error\_exception\}
   \end{block}
   Ошибка информативнее, но это exception со всеми его минусами
 \end{frame}
@@ -491,17 +504,17 @@
   \begin{itemize}
   \item функция bind принимает решение, вызвать ли свой второй аргумент
   \item в любой момент вся цепочка выражений может вернуть значение без вычисления остальных выражений
-  \item если \emph{foo} и \emph{bar} возвращают метки успешности, конструкция аналогична использованию Exception
-  \item тайпчекер, если он есть, может контролировать возврат \emph{foo} и \emph{bar}
+  \item если \emph{auth} и \emph{send} возвращают метки успешности, конструкция аналогична использованию Exception
+  \item тайпчекер, если он есть, может контролировать возврат \emph{auth} и \emph{send}
   \end{itemize}
 \end{frame}
 
 \begin{frame}{Функция bind}
-  \code{code.py}{73}{80}{python}
+  \code{code.py}{73}{83}{python}
 \end{frame}
 
 \begin{frame}{Функция return}
-  \code{code.py}{82}{83}{python}
+  \code{code.py}{85}{86}{python}
   \begin{itemize}
   \item многие функции ничего не знают про наши метки успешности выполнения
   \item \emph{return} позволяет использовать их
@@ -509,7 +522,7 @@
 \end{frame}
 
 \begin{frame}{Функция return}
-  \code{code.py}{85}{90}{python}
+  \code{code.py}{88}{93}{python}
 \end{frame}
 
 \begin{frame}{Монада Maybe}
@@ -544,16 +557,16 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Эмуляция монад}
-  Промежуточный вариант:
+\begin{frame}{Нечто среднее}
   \code{code.py}{95}{110}{python}
 \end{frame}
 
-\begin{frame}{Эмуляция монад}
+\begin{frame}{Нечто среднее}
   \begin{itemize}
   \item нет оверхеда на создание анонимных функций
   \item функция \emph{test} тотальна
   \item catch-all малы и не затрудняют дебаг
+  \item таким образом удобно писать handler'ы запросов пользователей
   \end{itemize}
 \end{frame}
 
@@ -566,37 +579,26 @@
 \end{frame}
 
 \begin{frame}{Почему это важно}
-  \inputminted[linenos, frame=none, firstline=29, fontsize=\tiny, lastline=48,
-  framesep=10pt, bgcolor=lightgray]{erlang}{code.erl}
-\end{frame}
-
-\begin{frame}{Почему это важно}
   \inputminted[linenos, frame=none, fontsize=\footnotesize,
-  firstline=50, lastline=65, framesep=10pt, firstnumber=4,
+  firstline=29, lastline=44, framesep=10pt, firstnumber=4,
   bgcolor=lightgray]{erlang}{code.erl}
 \end{frame}
 
 \begin{frame}{Почему это важно}
   \inputminted[linenos, frame=none, fontsize=\small,
-  firstline=67, lastline=72, framesep=10pt,
+  firstline=46, lastline=48, framesep=10pt,
   bgcolor=lightgray]{erlang}{code.erl}
 \end{frame}
 
 \begin{frame}{Почему это важно}
   \inputminted[linenos, frame=none, fontsize=\small,
-  firstline=74, lastline=76, framesep=10pt, firstnumber=5,
+  firstline=50, lastline=53, framesep=10pt, firstnumber=5,
   bgcolor=lightgray]{erlang}{code.erl}
 \end{frame}
 
 \begin{frame}{Почему это важно}
   \inputminted[linenos, frame=none, fontsize=\small,
-  firstline=78, lastline=81, framesep=10pt, firstnumber=8,
-  bgcolor=lightgray]{erlang}{code.erl}
-\end{frame}
-
-\begin{frame}{Почему это важно}
-  \inputminted[linenos, frame=none, fontsize=\small,
-  firstline=83, lastline=85, framesep=10pt, firstnumber=12,
+  firstline=55, lastline=57, framesep=10pt, firstnumber=12,
   bgcolor=lightgray]{erlang}{code.erl}
 \end{frame}
 
